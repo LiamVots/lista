@@ -1,0 +1,101 @@
+import urllib
+import urllib.request
+import re
+from urllib.error import URLError, HTTPError, ContentTooShortError
+
+
+def download(url, num_retries=2, user_agent='wswp', charset='utf-8',):
+        """ Download a given URL and return the page content
+            args:
+                url (str): URL
+            kwargs:
+                user_agent (str): user agent (default: wswp)
+                charset (str): charset if website does not include one in headers
+                proxy (str): proxy url, ex 'http://IP' (default: None)
+                num_retries (int): number of retries if a 5xx error is seen (default: 2)
+        """
+        print('Downloading:', url)
+        request = urllib.request.Request(url)
+        request.add_header('User-agent', user_agent)
+        try:
+
+            resp = urllib.request.urlopen(request)
+            cs = resp.headers.get_content_charset()
+            if not cs:
+                cs = charset
+            html = resp.read().decode(cs)
+        except (URLError, HTTPError, ContentTooShortError) as e:
+            print('Download error:', e.reason)
+            html = None
+            if num_retries > 0:
+                if hasattr(e, 'code') and 500 <= e.code < 600:
+                    # recursively retry 5xx HTTP errors
+                    return download(url, num_retries - 1)
+        return html
+def findImages(html):
+    ListImages=re.findall(r'ZoomImageURLs\[(.*?)\.jpg\"', html)
+    return ListImages
+
+
+
+def makeLink(listPics):
+    for x in range(len(listPics)):
+        bring=listPics[x]
+        bring=bring[6:]+".jpg"
+        bring=bring.replace("\\","")
+        bring = bring.replace(" ", "_")
+        listPics[x]=bring
+
+    return listPics
+
+
+def downloadimages(listhtml, num_retries=2,):
+    for x in range(len(listhtml)):
+        try:
+            resource = urllib.request.urlopen(listhtml[x])
+            ime= listhtml[x]
+            ime=ime[51:-3]
+            output = open("C:\\Users\\DELL\\Desktop\\pythonmagenta\\"+ime+".jpg", "wb")
+            output.write(resource.read())
+            output.close()
+        except (URLError, HTTPError, ContentTooShortError) as e:
+            print('Download error:', e.reason)
+            f=open("C:\\Users\\DELL\\Desktop\\pythonmagenta\\fajl.txt", "a")
+            f.write(listhtml[x]+'\n')
+            f.close
+
+            if num_retries > 0:
+                if hasattr(e, 'code') and 500 <= e.code < 600:
+                    # recursively retry 5xx HTTP errors
+                    return downloadimages(listhtml, num_retries - 1)
+
+
+#Cita imena iz fajla i prebacuje ih u model gde moze da se trazi
+f = open("C:\\Users\\DELL\\Desktop\\demofile.txt", "r")
+fajl=f.readlines()
+lista=[]
+
+
+for x in range(len(fajl)):
+    fajl[x]=fajl[x].replace(' ','-')
+
+
+for x in range(len(fajl)):
+    html = download("https://www.cricketershop.com/products/"+fajl[x])
+    lista.extend(findImages(html))
+names=makeLink(lista)
+print(names)
+downloadimages(names)
+
+
+
+
+
+
+
+
+
+
+
+
+
